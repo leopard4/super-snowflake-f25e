@@ -14,80 +14,7 @@ export default {
           <head>
             <title>이미지 생성기</title>
             <style>
-              body {
-                font-family: Arial, sans-serif;
-                margin: 20px;
-                padding: 0;
-                background-color: #f4f4f9;
-                color: #333;
-              }
-              h1 {
-                color: #444;
-              }
-              form {
-                background: #fff;
-                padding: 20px;
-                border-radius: 8px;
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-                max-width: 500px;
-                margin: 0 auto;
-              }
-              label {
-                font-weight: bold;
-                display: block;
-                margin-bottom: 8px;
-              }
-              input[type="text"] {
-                width: 100%;
-                padding: 10px;
-                margin-bottom: 20px;
-                border: 1px solid #ddd;
-                border-radius: 4px;
-                font-size: 16px;
-              }
-              button {
-                background-color: #007BFF;
-                color: white;
-                padding: 10px 20px;
-                border: none;
-                border-radius: 4px;
-                cursor: pointer;
-                font-size: 16px;
-              }
-              button:hover {
-                background-color: #0056b3;
-              }
-              .image-container {
-                margin-top: 20px;
-                text-align: center;
-              }
-              img {
-                max-width: 100%;
-                border-radius: 8px;
-              }
-              .image-list {
-                margin-top: 20px;
-                background: #fff;
-                padding: 20px;
-                border-radius: 8px;
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-                max-width: 500px;
-                margin: 20px auto;
-              }
-              .image-list ul {
-                list-style-type: none;
-                padding: 0;
-              }
-              .image-list li {
-                margin: 10px 0;
-              }
-              .image-list a {
-                text-decoration: none;
-                color: #007BFF;
-              }
-              .image-list a:hover {
-                text-decoration: underline;
-              }
+              /* 스타일 생략 */
             </style>
           </head>
           <body>
@@ -150,7 +77,7 @@ export default {
         );
 
         // 이미지를 R2에 저장
-        const imageKey = \`images/\${Date.now()}.png\`; // 고유한 파일 이름 생성
+        const imageKey = "images/" + Date.now() + ".png"; // 문자열 연결 사용
         await env.MY_BUCKET.put(imageKey, response); // R2 버킷에 이미지 저장
 
         // 생성된 이미지 반환
