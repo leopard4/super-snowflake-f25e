@@ -55,7 +55,7 @@ export default {
         </html>
       `;
       return new Response(html, {
-        headers: { "content-type": "text/html" },
+        headers: { "content-type": "text/html;charset=UTF-8" },
       });
     }
 
