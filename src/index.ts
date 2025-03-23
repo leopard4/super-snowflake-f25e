@@ -85,7 +85,7 @@ export default {
           headers: { "content-type": "image/png" },
         });
       } catch (error) {
-        return new Response(\`오류 발생: \${error.message}\`, { status: 500 });
+        return new Response("오류 발생: " + (error as Error).message, { status: 500 });
       }
     }
 
