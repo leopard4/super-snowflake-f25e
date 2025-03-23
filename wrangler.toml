@@ -1,0 +1,3 @@
+[[r2_buckets]]
+binding = "MY_BUCKET"  # 코드에서 사용할 변수 이름
+bucket_name = "my-image-bucket"  # R2 버킷 이름
