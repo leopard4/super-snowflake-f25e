@@ -34,20 +34,25 @@ export default {
               document.querySelector("form").addEventListener("submit", async (e) => {
                 e.preventDefault();
                 const formData = new FormData(e.target);
-                const response = await fetch("/", {
-                  method: "POST",
-                  body: formData,
-                });
-                if (response.ok) {
-                  const blob = await response.blob();
-                  const imageUrl = URL.createObjectURL(blob);
-                  document.getElementById("image-container").innerHTML = \`
-                    <img src="\${imageUrl}" alt="생성된 이미지">
-                    <a href="\${imageUrl}" download="generated-image.png">이미지 다운로드</a>
-                  \`;
-                  location.reload(); // 이미지 목록 갱신
-                } else {
-                  alert("이미지 생성에 실패했습니다.");
+                try {
+                  const response = await fetch("/", {
+                    method: "POST",
+                    body: formData,
+                  });
+                  if (response.ok) {
+                    const blob = await response.blob();
+                    const imageUrl = URL.createObjectURL(blob);
+                    document.getElementById("image-container").innerHTML = \`
+                      <img src="\${imageUrl}" alt="생성된 이미지">
+                      <a href="\${imageUrl}" download="generated-image.png">이미지 다운로드</a>
+                    \`;
+                    setTimeout(() => location.reload(), 1000); // 1초 후에 페이지 새로고침
+                  } else {
+                    const errorText = await response.text();
+                    alert(errorText || "이미지 생성에 실패했습니다.");
+                  }
+                } catch (error) {
+                  alert("이미지 생성 중 오류가 발생했습니다.");
                 }
               });
             </script>
@@ -59,6 +64,27 @@ export default {
       });
     }
 
+    // 이미지 다운로드 (GET /download/:key)
+    const url = new URL(request.url);
+    if (url.pathname.startsWith("/download/")) {
+      const imageKey = url.pathname.split("/download/")[1];
+      const image = await env.MY_BUCKET.get(imageKey);
+
+      if (!image) {
+        return new Response("이미지를 찾을 수 없습니다.", { 
+          status: 404,
+          headers: { 'Content-Type': 'text/plain;charset=UTF-8' }
+        });
+      }
+
+      return new Response(image.body, {
+        headers: { 
+          "content-type": "image/png",
+          "Content-Disposition": `attachment; filename="${imageKey.split('/').pop()}"`
+        },
+      });
+    }
+
     // 이미지 생성 및 저장 (POST 요청)
     if (request.method === "POST") {
       try {
@@ -67,22 +93,46 @@ export default {
         const prompt = formData.get("prompt");
 
         if (!prompt) {
-          return new Response("프롬프트를 입력해 주세요.", { status: 400 });
+          return new Response("프롬프트를 입력해 주세요.", { 
+            status: 400,
+            headers: { 'Content-Type': 'text/plain;charset=UTF-8' }
+          });
+        }
+
+        // AI 모델 확인
+        if (!env.AI) {
+          throw new Error("AI 모델이 설정되지 않았습니다.");
         }
 
         // 이미지 생성
         const response = await env.AI.run(
-          "@cf/bytedance/stable-diffusion-xl-lightning", // 콘텐츠 정책이 더 허용적인 모델
-          { prompt }
+          "@cf/bytedance/stable-diffusion-xl-lightning",
+          { 
+            prompt,
+            num_inference_steps: 20,
+            guidance_scale: 7.5
+          }
         );
 
+        if (!response) {
+          throw new Error("이미지 생성에 실패했습니다.");
+        }
+
         // 이미지를 R2에 저장
-        const imageKey = "images/" + Date.now() + ".png"; // 문자열 연결 사용
-        await env.MY_BUCKET.put(imageKey, response); // R2 버킷에 이미지 저장
+        const imageKey = `images/${Date.now()}.png`;
+        await env.MY_BUCKET.put(imageKey, response, {
+          contentType: "image/png",
+          httpMetadata: {
+            contentType: "image/png"
+          }
+        });
 
         // 생성된 이미지 반환
         return new Response(response, {
-          headers: { "content-type": "image/png" },
+          headers: { 
+            "content-type": "image/png",
+            "Content-Disposition": `attachment; filename="generated-image.png"`
+          },
         });
       } catch (error) {
         console.error('Error:', error); // 에러 로깅 추가
@@ -92,21 +142,6 @@ export default {
           headers: { 'Content-Type': 'text/plain;charset=UTF-8' }
         });
       }
-    }
-
-    // 이미지 다운로드 (GET /download/:key)
-    const url = new URL(request.url);
-    if (url.pathname.startsWith("/download/")) {
-      const imageKey = url.pathname.split("/download/")[1];
-      const image = await env.MY_BUCKET.get(imageKey);
-
-      if (!image) {
-        return new Response("이미지를 찾을 수 없습니다.", { status: 404 });
-      }
-
-      return new Response(image.body, {
-        headers: { "content-type": "image/png" },
-      });
     }
 
     // 지원하지 않는 메서드
